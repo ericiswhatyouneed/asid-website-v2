@@ -440,17 +440,24 @@ export default function Nav() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Check for dark/inverted sections via data attribute
+  // IntersectionObserver — invert nav when any data-section="dark" is visible
   useEffect(() => {
-    const checkInverted = () => {
-      const hero = document.querySelector('[data-nav-invert]')
-      if (hero) {
-        const rect = hero.getBoundingClientRect()
-        setInverted(rect.top <= 0 && rect.bottom > 0)
-      }
-    }
-    window.addEventListener('scroll', checkInverted, { passive: true })
-    return () => window.removeEventListener('scroll', checkInverted)
+    const darkSections = document.querySelectorAll('[data-section="dark"]')
+    const visible = new Set<Element>()
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) visible.add(entry.target)
+          else visible.delete(entry.target)
+        })
+        setInverted(visible.size > 0)
+      },
+      { threshold: 0 }
+    )
+
+    darkSections.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
   }, [])
 
   const handleMouseEnter = (key: string) => {
@@ -469,6 +476,7 @@ export default function Nav() {
   return (
     <>
       <nav
+        className={inverted ? 'nav-inverted' : ''}
         style={{
           position: 'fixed',
           top: 0,
@@ -673,6 +681,10 @@ export default function Nav() {
         @media (max-width: 1024px) {
           .nav-desktop { display: none !important; }
           .nav-hamburger { display: block; }
+        }
+        .nav-inverted {
+          background: var(--color-dark) !important;
+          border-bottom: none !important;
         }
       `}</style>
     </>
